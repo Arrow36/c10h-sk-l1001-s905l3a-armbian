@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+work/
+*.img
+*.img.gz
+*.zip
+*.ko
+*.dtb
+*.pem
+*.key
+.env
+id_ed25519*
+known_hosts*

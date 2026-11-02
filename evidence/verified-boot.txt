@@ -1,0 +1,16 @@
+Selected journal excerpts from the tested C10H. Host/device identifiers omitted.
+
+[   16.785163] armbian kernel: Linux version 6.12.114-ophub (root@bfc80db895cb) (aarch64-none-linux-gnu-gcc (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 15.3.1 20260627, GNU ld (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.149)) 2.45.1.20260126) #1 SMP PREEMPT_DYNAMIC Thu Oct 22 07:52:48 UTC 2026
+[   16.785233] armbian kernel: Machine model: SKYWORTH E900V22C
+[   16.875131] armbian kernel: EXT4-fs (sda2): mounted filesystem bee3dd87-44ee-4457-8d25-5ad136e40646 r/w with writeback data mode. Quota mode: none.
+[   19.500749] armbian sh[1083]: /usr/local/sbin/c10h-boot-proof.sh: 2: set: Illegal option -
+[   21.197648] armbian sshd[1437]: Server listening on 0.0.0.0 port 22.
+[   21.233420] armbian systemd[1]: Reached target multi-user.target - Multi-User System.
+[   26.875237] armbian kernel: EXT4-fs (sda2): resized filesystem to 7669309
+[   26.387356] armbian sshd[1983]: Server listening on 0.0.0.0 port 22.
+[   59.494955] armbian sshd[3088]: Server listening on 0.0.0.0 port 22.
+[   66.627007] armbian sshd[3185]: Server listening on 0.0.0.0 port 22.
+
+Later SSH verification: uname reported 6.12.114-ophub aarch64; root was /dev/sda2 ext4.
+Later internet verification: public IP ping succeeded; deb.debian.org resolved; HTTPS returned HTTP/2 200.
+HDMI console was confirmed by the device operator.

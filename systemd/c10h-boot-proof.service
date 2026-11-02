@@ -1,0 +1,12 @@
+[Unit]
+Description=Record C10H USB Linux boot evidence
+After=local-fs.target
+RequiresMountsFor=/boot
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /usr/local/sbin/c10h-boot-proof.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
