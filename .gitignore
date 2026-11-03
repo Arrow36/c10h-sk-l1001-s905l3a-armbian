@@ -12,3 +12,14 @@ work/
 .env
 id_ed25519*
 known_hosts*
+
+# Generated kernel/userspace test artifacts
+*.o
+*.mod
+*.mod.c
+*.mod.o
+.*.cmd
+Module.symvers
+modules.order
+drm-geometry
+*.deb

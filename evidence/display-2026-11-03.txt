@@ -1,0 +1,17 @@
+Sanitized experiment summary, 2026-11-03 Asia/Shanghai
+Kernel: 6.12.114-ophub ARM64; userspace Debian 13 Trixie
+Native panel: C_JD9366TC_Single_CSOT_10.1_BPA107LT1-1, lcd_8
+DSI: 4 lanes RGB888 burst
+Mode: 800x1280; H total876, V total1448, target76107kHz
+DSI host: requested bit456642000Hz; actual bit531000000Hz; pixel75857143Hz
+Native framebuffer: mesondrmfb
+Boot warning: Gamma WR_RDY/ADR_RDY timeouts during early modeset
+Native ENCL hardware bars: user confirmed full frame and no jitter
+Native DRM linear dumb buffer: 800x1280 XRGB8888, pitch3200, size4096000
+Atomic primary-plane commit: no ALLOW_MODESET; source/destination800x1280
+Visible native geometry: full border/cross/single block; blue instead of black; jitter remains
+Late Gamma reload: completed; no visible improvement reported
+HLINE764->767: applied; no visible improvement reported
+One earlier native boot automatically restarted; no conclusive crash trace
+Current status: paused at user request; display adaptation incomplete
+No credentials, personal device identifiers, original dumps or firmware included

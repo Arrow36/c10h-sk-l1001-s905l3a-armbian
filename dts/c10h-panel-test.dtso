@@ -1,0 +1,45 @@
+/dts-v1/;
+/plugin/;
+/* C10H lcd_8, based on stock DT and runtime-confirmed panel parameters. */
+&{/} {
+    c10h_backlight: backlight-c10h {
+        compatible = "pwm-backlight";
+        pwms = <&pwm_cd 0 40000 0>;
+        brightness-levels = <0 16 32 64 96 128 192 255>;
+        default-brightness-level = <4>;
+        post-pwm-on-delay-ms = <600>;
+        pwm-off-delay-ms = <10>;
+    };
+};
+&pwm_cd {
+    status = "okay";
+    pinctrl-names = "default";
+    pinctrl-0 = <&pwm_c_c_pins>;
+};
+&mipi_analog_dphy { status = "okay"; };
+&mipi_dphy { status = "okay"; };
+&mipi_dsi {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    status = "okay";
+    panel@0 {
+        compatible = "arrow36,c10h-jd9366tc";
+        reg = <0>;
+        backlight = <&c10h_backlight>;
+        /* Mainline indices: C2=43, A11=60, C1=42. */
+        c2-gpios = <&gpio 43 0>;
+        a11-gpios = <&gpio 60 0>;
+        c1-gpios = <&gpio 42 0>;
+        port {
+            c10h_panel_in: endpoint { remote-endpoint = <&c10h_dsi_out>; };
+        };
+    };
+};
+&{/soc/bus@ffd00000/dsi@7000/ports/port@1} {
+    c10h_dsi_out: endpoint { remote-endpoint = <&c10h_panel_in>; };
+};
+/* One CRTC: select the built-in LCD for this diagnostic boot. */
+&hdmi_tx { status = "disabled"; };
+
+/* Borrowed SD card pinmux conflicts with the LCD GPIO/PWM on this board. */
+&sd_emmc_b { status = "disabled"; };

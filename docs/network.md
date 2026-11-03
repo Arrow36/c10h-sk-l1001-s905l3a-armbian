@@ -27,3 +27,9 @@ ssh root@192.168.137.2
 ```
 
 只有 eth0 注册不代表有物理链路；需结合 carrier、电脑网卡状态和实际通信验证。此静态地址适用于上述直连网段，换路由器或网段后要重新配置。
+
+## 后续测试情况（2026-11-03）
+
+曾成功通过 Windows ICS DHCP 获取地址；后续多次启动又遇到 DHCP 等待超时、需要重新插拔网线才能恢复 SSH，故不能把自动联网标记为稳定。当前调试连接使用上述静态地址。DNS 也在后续测试失效，DRM 测试依赖改由电脑下载后传入，早期互联网验证不代表每次启动都可联网。
+
+Android 曾把 Linux 分区内文件属主改为 media_rw，NetworkManager 会忽略非 root 所有的连接文件。`systemd/c10h-network-profile-owner.service` 在 NetworkManager 前恢复 `.nmconnection` 文件属主；它不是整个根文件系统的权限修复。后续日志仍存在 cron、NetworkManager dispatcher 文件属主异常，尚未完整处理。不要在 Linux 分区上笼统递归 chown：系统内不同文件原本有不同属主。

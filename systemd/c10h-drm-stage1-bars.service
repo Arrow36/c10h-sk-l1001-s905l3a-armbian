@@ -1,0 +1,12 @@
+[Unit]
+Description=C10H native DRM downstream colorbar acceptance
+After=systemd-modules-load.service local-fs.target
+ConditionKernelCommandLine=c10h.drm_stage1=1
+
+[Service]
+Type=oneshot
+ExecStart=/root/c10h-screen-work/drm-stage1/drm-stage1-bars.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

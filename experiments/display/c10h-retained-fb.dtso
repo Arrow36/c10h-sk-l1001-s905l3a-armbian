@@ -1,0 +1,27 @@
+/dts-v1/;
+/plugin/;
+/* Keep the panel/display path initialized by the stock bootloader. */
+&{/reserved-memory} {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    c10h_lcd_buffer: framebuffer@3d800000 {
+        reg = <0 0x3d800000 0 0x800000>;
+        no-map;
+    };
+};
+&{/chosen} {
+    #address-cells = <2>;
+    #size-cells = <2>;
+    framebuffer@3d800000 {
+        compatible = "simple-framebuffer";
+        reg = <0 0x3d800000 0 0x3e8000>;
+        width = <800>;
+        height = <1280>;
+        stride = <3200>;
+        format = "x8r8g8b8";
+        status = "okay";
+    };
+};
+&vpu { status = "disabled"; };
+&hdmi_tx { status = "disabled"; };
+&sd_emmc_b { status = "disabled"; };

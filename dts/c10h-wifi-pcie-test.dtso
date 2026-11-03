@@ -1,0 +1,37 @@
+/dts-v1/;
+/plugin/;
+
+/* FAILED/UNVALIDATED: PCIe variants caused garbled display and lost SSH.
+ * Archived for investigation; not a working C10H Wi-Fi overlay. */
+
+/* Experimental overlay for the tested E900V22C-derived G12A base DTB.
+ * GPIOX_6 = 71: PCIe PERST#; GPIOX_7 = 72: WLAN enable, per stock C10H DT.
+ * GPIO numbers and polarity must not be reused on unrelated boards.
+ * USB2 remains active for the root filesystem; shared USB3 PHY goes to PCIe.
+ */
+&pcie {
+    status = "okay";
+    reset-gpios = <&gpio 71 1>;
+};
+
+&gpio {
+    c10h-wlan-enable {
+        gpio-hog;
+        gpios = <72 0>;
+        output-high;
+        line-name = "c10h-wlan-enable";
+    };
+};
+
+&usb {
+    phy-names = "usb2-phy0", "usb2-phy1";
+    phys = <&usb2_phy0>, <&usb2_phy1>;
+};
+
+&sd_emmc_a {
+    status = "disabled";
+};
+
+&{/sdio-pwrseq} {
+    status = "disabled";
+};
