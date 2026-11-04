@@ -6,9 +6,11 @@
 
 2026-11-04：U 盘启动后可自动进入 20 像素横屏登录。偏色和抖动仍在，已完成原厂 Android 硬件纯色、亮屏命令和关键寄存器对照。见[后续实测](docs/display-followup.md)和[屏幕适配记录](docs/display.md)。
 
+2026-11-04：另在 U 盘启动的非官方 ARM fnOS 1.1.20（Linux 6.12.41-trim）上验证了有线访问与内屏开机点亮。内屏独占时硬件彩条完整，普通画面仍有固定紫色区域、重复和闪动。见[飞牛内屏实验](docs/display-fnos.md)和[浏览器诊断方法](docs/display-browser-diagnostics.md)。
+
 当前借用 E900V22C 设备树，只做了外置试启动所需的修改，还不是完整的 C10H 主板支持。
 
-## 当前系统
+## Armbian 测试基线
 
 | 项目 | 已测试配置 |
 | --- | --- |
@@ -37,6 +39,8 @@
 - [启动过程与限制](docs/boot.md)
 - [网络配置](docs/network.md)
 - [屏幕适配、源码及待解决问题](docs/display.md)
+- [飞牛内屏实验及 Armbian 对照](docs/display-fnos.md)
+- [浏览器滑杆与只读监测](docs/display-browser-diagnostics.md)
 - [暂停时检查点与恢复方法](docs/checkpoint-2026-11-03.md)
 - [Wi-Fi 实验结果](docs/wifi.md)
 - [镜像来源与校验记录](docs/provenance.md)
