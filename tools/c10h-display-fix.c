@@ -3,13 +3,14 @@
  * C10H / SK-L1001 Display Hardware Register Direct MMIO Fix Tool
  *
  * This tool directly programs Amlogic S905L3A VPU and MIPI-DSI registers via /dev/mem
- * to achieve 100% stable, jitter-free, color-accurate display output on fnOS and Armbian.
+ * using experimental values associated with improved output in C10H test records.
+ * These values are specific to the tested hardware and mode, not a compatibility guarantee.
  *
- * Resolved issues:
+ * Experimental settings (individual effects require controlled validation):
  * 1. Color Shift (Green black, magenta white): VPU[0x38A0] = 0x0001C040 (RGB -> YUV709l HDR2 matrix)
  * 2. Half-Purple Screen / Folding: VPU[0x1DF1] = 0x05000320 (OSD1 input size 800x1280)
  * 3. High-Frequency Vertical Jitter: VPU[0x1A2B] = 0x82820501 (VIU FIFO burst 96, hold 8 lines)
- * 4. VPP Output FIFO Starvation: VPU[0x1DF5] = 0x0000077F (Full 1919-depth FIFO)
+ * 4. VPP Output FIFO Configuration: VPU[0x1DF5] = 0x0000077F (Full 1919-depth FIFO)
  * 5. VPP Hold Lines: VPU[0x1D22] = 0x08080808 (8 lines hold)
  * 6. DSI Synchronization & Polarities: DSI[0x3C8]=0x00512430, DSI[0x014]=0x0, DSI[0x050]=0x000002FF
  */

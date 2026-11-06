@@ -1,6 +1,6 @@
 # 屏幕实验源码构建说明
 
-这不是完整安装教程；源码只对应本仓库记录的 6.12.114-ophub 实验，不能承诺其他内核/板卡兼容。先阅读 [display.md](display.md) 与 [checkpoint](checkpoint-2026-11-03.md)。
+这不是完整安装教程；早期构建记录对应 6.12.114-ophub，另有 6.12.41-trim 的 fnOS 实验；当前源码改动须在目标内核重新验证，不能承诺其他内核/板卡兼容。先阅读 [显示概览](display.md) 与 [11 月 6 日配置及限制](research/fnos-display-resolution-record-2026-11-06.md)。[11 月 3 日检查点](checkpoint-2026-11-03.md) 仅作历史对照。
 
 ## 内核模块
 
@@ -34,3 +34,17 @@ cc -O2 -Wall -Wextra -Werror $(pkg-config --cflags libdrm) \
 - 面板命令/时序来自本机原厂 DT 与 Android 运行参数，公开版本不含整份原厂 DT、序列号或网络凭据。
 - ENCL 诊断逻辑对照原厂 lcd_debug_test 和主线寄存器定义；测试时序修改均为实验，不能用已失败的临时值当正式修复。
 - shell 脚本必须保持 LF；本次曾因 CRLF 导致 203/EXEC，已修正，`.gitattributes` 固定 LF。
+
+## 独立 MMIO 工具与服务示例
+
+以下仅编译用户态程序，不执行寄存器写入。在目标 Linux 上可用：
+
+```sh
+cc -O2 -Wall -Wextra tools/c10h-display-fix.c -o c10h-display-fix
+```
+
+在其他平台交叉编译时须改用匹配的 ARM64 工具链；普通 Windows 编译产物不能直接运行于设备。工具通过 `/dev/mem` 访问固定 VPU/DSI 地址，需要 root 与内核支持，且没有板型检测或恢复原值逻辑。映射失败仍可能返回 0，必须查看错误输出与实际显示。
+
+`systemd/c10h-display-fix.service` 预期工具位于 `/usr/local/bin/c10h-display-fix`。安装前核对是否已经使用包含 MMIO 配置的面板驱动，以及实际初始化顺序；服务仅在模块加载服务之后运行，不保证 DRM 已就绪。仓库服务是环境示例，不是经过通用验收的安装方案。
+
+`systemd/c10h-fbcon-rotate.service` 要求目标内核支持 fbcon 旋转并提供相应 sysfs 路径。历史资料提及 Armbian 的 FbTerm 方案，但设备使用者已明确 Armbian 内屏尚未测试；该方案仅作参考，两种方案不能直接互相替代。先验证单次显示和可用的 SSH/离线回退，再按所选路径安排持久化。

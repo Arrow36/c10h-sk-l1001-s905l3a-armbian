@@ -92,7 +92,7 @@ static int c10h_prepare(struct drm_panel *panel)
     ret = c10h_control(ctx, 2, 1, 0);
     if (ret) goto fail;
 
-    /* Hardware register fix (eliminates color shift, jitter, and half-screen folding at 0ms) */
+    /* Experimental C10H register settings; validate ordering and output on the target kernel. */
     vpu = ioremap(0xff900000, 0x40000);
     if (vpu) {
         writel_relaxed(0x0001c040, vpu + 0x38a0 * 4); // OSD1 HDR2 RGB->YUV709l matrix
