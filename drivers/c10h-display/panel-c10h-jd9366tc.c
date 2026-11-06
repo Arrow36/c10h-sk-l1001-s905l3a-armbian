@@ -104,7 +104,7 @@ static int c10h_unprepare(struct drm_panel *panel)
 }
 
 static const struct drm_display_mode c10h_mode = {
-    .clock = 76107,
+    .clock = 75857,
     .hdisplay = 800, .hsync_start = 840, .hsync_end = 848, .htotal = 876,
     .vdisplay = 1280, .vsync_start = 1420, .vsync_end = 1428, .vtotal = 1448,
     .flags = DRM_MODE_FLAG_NHSYNC | DRM_MODE_FLAG_NVSYNC,

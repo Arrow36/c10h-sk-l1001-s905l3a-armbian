@@ -1,0 +1,12 @@
+[Unit]
+Description=C10H Display Hardware Register Fix (Color, Geometry and Twitch Persistence)
+After=systemd-modules-load.service
+Before=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/c10h-display-fix
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

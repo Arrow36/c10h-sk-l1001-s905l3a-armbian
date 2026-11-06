@@ -129,12 +129,13 @@ static int dw_mipi_dsi_phy_init(void *priv_data)
 		return -EINVAL;
 	}
 
-	/* Configure color format for DPI register */
+	/* Configure color format for DPI register, and invert HS/VS sync polarities (BIT(5)|BIT(4)) for JD9366TC */
 	writel_relaxed(FIELD_PREP(MIPI_DSI_TOP_DPI_COLOR_MODE, dpi_data_format) |
 		       FIELD_PREP(MIPI_DSI_TOP_IN_COLOR_MODE, venc_data_width) |
 		       FIELD_PREP(MIPI_DSI_TOP_COMP2_SEL, 2) |
 		       FIELD_PREP(MIPI_DSI_TOP_COMP1_SEL, 1) |
-		       FIELD_PREP(MIPI_DSI_TOP_COMP0_SEL, 0),
+		       FIELD_PREP(MIPI_DSI_TOP_COMP0_SEL, 0) |
+		       BIT(5) | BIT(4),
 			mipi_dsi->base + MIPI_DSI_TOP_CNTL);
 
 	return phy_configure(mipi_dsi->phy, &mipi_dsi->phy_opts);

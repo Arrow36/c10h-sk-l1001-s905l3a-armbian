@@ -1,0 +1,12 @@
+[Unit]
+Description=Rotate C10H framebuffer consoles to landscape (1280x800)
+After=systemd-modules-load.service
+ConditionPathExists=/sys/class/graphics/fbcon/rotate_all
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "echo 3 > /sys/class/graphics/fbcon/rotate_all"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
