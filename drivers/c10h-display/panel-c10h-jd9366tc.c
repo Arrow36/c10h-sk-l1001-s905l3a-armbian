@@ -4,6 +4,7 @@
 #include <linux/gpio/consumer.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/io.h>
 #include <drm/drm_connector.h>
 #include <drm/drm_mipi_dsi.h>
 #include <drm/drm_modes.h>
@@ -70,6 +71,9 @@ static int c10h_prepare(struct drm_panel *panel)
 {
     struct c10h_panel *ctx = to_c10h(panel);
     int ret;
+    void __iomem *vpu;
+    void __iomem *dsi;
+
     /* Stock power_on_step: controls C1, C2, A11, signal, then C1. */
     ret = c10h_control(ctx, 2, 0, 10);
     if (ret) goto fail;
@@ -87,7 +91,26 @@ static int c10h_prepare(struct drm_panel *panel)
     if (ret) goto fail;
     ret = c10h_control(ctx, 2, 1, 0);
     if (ret) goto fail;
-    dev_info(&ctx->dsi->dev, "C10H stock panel initialization complete\n");
+
+    /* Hardware register fix (eliminates color shift, jitter, and half-screen folding at 0ms) */
+    vpu = ioremap(0xff900000, 0x40000);
+    if (vpu) {
+        writel_relaxed(0x0001c040, vpu + 0x38a0 * 4); // OSD1 HDR2 RGB->YUV709l matrix
+        writel_relaxed(0x05000320, vpu + 0x1df1 * 4); // VPP OSD1 input size: 800x1280
+        writel_relaxed(0x82820501, vpu + 0x1a2b * 4); // VIU OSD1 FIFO: burst 96, hold 8 lines
+        writel_relaxed(0x0000077f, vpu + 0x1df5 * 4); // VPP OFIFO size: 1919
+        writel_relaxed(0x08080808, vpu + 0x1d22 * 4); // VPP hold lines: 8 lines
+        iounmap(vpu);
+    }
+    dsi = ioremap(0xffd07000, 0x1000);
+    if (dsi) {
+        writel_relaxed(0x00512430, dsi + 0x3c8);       // DSI TOP HS/VS active-high
+        writel_relaxed(0x00000000, dsi + 0x014);       // DSI DPI polarity
+        writel_relaxed(0x000002ff, dsi + 0x050);       // VID_HLINE_TIME = 767
+        iounmap(dsi);
+    }
+
+    dev_info(&ctx->dsi->dev, "C10H stock panel initialization & hardware MMIO fix complete\n");
     return 0;
 fail:
     c10h_power_off(ctx);
