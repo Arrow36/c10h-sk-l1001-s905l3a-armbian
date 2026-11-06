@@ -33,3 +33,7 @@ ssh root@192.168.137.2
 曾成功通过 Windows ICS DHCP 获取地址；后续多次启动又遇到 DHCP 等待超时、需要重新插拔网线才能恢复 SSH，故不能把自动联网标记为稳定。当前调试连接使用上述静态地址。DNS 也在后续测试失效，DRM 测试依赖改由电脑下载后传入，早期互联网验证不代表每次启动都可联网。
 
 Android 曾把 Linux 分区内文件属主改为 media_rw，NetworkManager 会忽略非 root 所有的连接文件。`systemd/c10h-network-profile-owner.service` 在 NetworkManager 前恢复 `.nmconnection` 文件属主；它不是整个根文件系统的权限修复。后续日志仍存在 cron、NetworkManager dispatcher 文件属主异常，尚未完整处理。不要在 Linux 分区上笼统递归 chown：系统内不同文件原本有不同属主。
+
+## 系统范围与证据口径
+
+以上 Windows ICS、静态地址和权限修复记录主要对应早期 Armbian 调试，不是 fnOS 默认网络配置。fnOS 的 SSH 会话见 [历史附录](research/fnos-lcd-full-record-2026-11-04.md)，未见独立的 fnOS 链路速率/长期联网测试。100 Mbps 是历史链路描述，不是 iperf/文件传输吞吐结果；不要将 Armbian 的 DNS/HTTPS 成功记录移用于 fnOS。

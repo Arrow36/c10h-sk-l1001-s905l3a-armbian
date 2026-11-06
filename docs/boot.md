@@ -45,3 +45,13 @@ python3 tools/make_boot_script.py boot/aml_autoscript.cmd aml_autoscript
 一次测试中，用户断电、拔 U 盘后正常返回 Android。测试前后 bootcmd 相同，但原厂环境原始哈希并非完全相同：重启原因和 bootargs 中的 reboot_mode_android 字段有变化。
 
 本地已有 boot、dtbo、recovery、vbmeta、bootloader 及测试前 env 的校验备份。它们不等于完整原厂固件；恢复流程和免拆救砖能力尚未实测。备份不在公开仓库中。
+
+## 按系统核对与审计边界
+
+以上布局及 `boot/aml_autoscript.cmd` 对应 Armbian 的 ext4/固定 UUID/HDMI 参数；不是 fnOS 的可直接复用启动脚本。fnOS 历史终端输出为 Btrfs，bootargs 还包含 `rootflags=compress=zstd:1` 和自定义主机的 initcall blacklist，见 [fnOS 完整记录](research/fnos-lcd-full-record-2026-11-04.md)。实际已安装 fnOS DTB、二进制脚本和最终模块不在仓库。
+
+“仅修改 eMMC 节点”只指 [disable_emmc.py](../tools/disable_emmc.py) 的目标，不表示整个 LCD 实验 DTB 只改了这一项。[面板 overlay](../dts/c10h-panel-test.dtso)还启用 PWM/DSI、添加面板及 graph、禁用 HDMI/SD；它本身不禁用 eMMC，也不禁用基础 simplefb，必须核对最终 DTB，不能只检查 overlay 文本。
+
+[脚本文本](../boot/aml_autoscript.cmd)没有保存环境或写入 eMMC 的命令，失败后循环；但本次未取得原厂 U-Boot 完整二进制/源码、全程串口日志或完整恢复备份，不能证明整个 update 路径无写入副作用。现有证据也不支持 SD 启动、eMMC 安装、免拆救砖或所有冷启动自动 USB 引导。详见 [证据缺口](audit.md#仍缺乏证据的结论)。
+
+原版 ophub 脚本行为属于当时镜像的记录，不能推定所有当前上游版本相同。本文的原厂备份是历史设备本地材料，本次未访问这些备份或进行恢复测试。

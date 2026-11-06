@@ -87,3 +87,36 @@ original framebuffer: 43; test framebuffer: 45
 ## 恢复与后续
 
 见[后续实测](display-followup.md)和[历史检查点](checkpoint-2026-11-03.md)。其中关闭自动彩条、FbTerm 横屏及偏色/抖动待定位等描述属于早期状态。11 月 6 日后的配置与限制以本文概览及寄存器调整记录为准；冷启动和长期运行证据仍待补齐。
+
+## 寄存器配置与命名核对
+
+以下为当前工具与面板驱动中实际存在的写入值，证明实现内容，不单独证明执行成功。fnOS 显示正常的现场结论保留，Armbian 内屏仍未测试。详细问题见 [源码审计](code-audit.md)。
+
+| 模块 / 索引或偏移 | 当前写入值 | 按仓库头文件核对的含义 | 证据边界 |
+| --- | --- | --- | --- |
+| VPU `0x38A0` | `0x0001C040` | `OSD1_HDR2_CTRL`，包含 `REG_ONLY_MAT` bit16 | 写后反馈颜色正常；不能由单个控制值还原全部矩阵系数 |
+| VPU `0x1DF1` | `0x05000320` | `VPP_OSD1_IN_SIZE` | 记录关联 800×1280 输入尺寸与几何恢复；不证明所有启动路径 |
+| VPU `0x1A2B` | `0x82820501` | `VIU_OSD1_FIFO_CTRL_STAT`；按宏可解出 burst 96、hold lines 8 | 联合修复的一部分；不能据此确诊 DDR 欠载 |
+| VPU `0x1DF5` | `0x0000077F` | **`VPP_OSD1_BLD_H_SCOPE`**，不是头文件的 `VPP_OFIFO_SIZE` | 原文称“1919 深度 FIFO”与命名冲突，撤下该解释；保留原写入值和正常显示观察 |
+| VPU `0x1D22` | `0x08080808` | `VPP_HOLD_LINES` | 早期 `0x404→0x808` 与后来完整写入值、组合测试不同，不能合并为同一实验 |
+| DSI `0x3C8` | `0x00512430` | `MIPI_DSI_TOP_CNTL`，HS/VS invert 位为 bit5/bit4 | Host 也在 PHY 初始化中设置这两位；单项贡献待验证 |
+| DSI `0x014` | `0x00000000` | DPI 极性控制（历史记录命名） | 索引口径为字节偏移；字段的 SoC 适用性需结合主控定义 |
+| DSI `0x050` | `0x000002FF` | HLINE 767（历史记录命名） | 不是 767 个 framebuffer 像素；早期单项试验无明显改善 |
+
+VPU 基址为 `0xFF900000`，地址按索引乘 4；DSI 基址为 `0xFFD07000`，偏移直接相加。源码可见 [独立工具](../tools/c10h-display-fix.c)、[面板写入](../drivers/c10h-display/panel-c10h-jd9366tc.c)、[寄存器定义](../drivers/c10h-display/meson_registers.h)和 [DSI TOP 定义](../drivers/c10h-display/meson_dw_mipi_dsi.h)。
+
+同一头文件将真正名为 `VPP_OFIFO_SIZE` 的寄存器定义在 `0x1D27`；[11 月 4 日汇总](display-followup.md)记录其值为 `0xFFF01000`。Linux [v6.12.41 头文件](https://github.com/gregkh/linux/blob/v6.12.41/drivers/gpu/drm/meson/meson_registers.h)也作相同命名。这里纠正文档解释，不改动任何地址、写入值或驱动行为；S905L3A 专用完整手册仍是证据缺口。
+
+### 上游代码与当前运行内核的区别
+
+查阅的 Linux [v6.12.41 `meson_viu_init()`](https://github.com/gregkh/linux/blob/v6.12.41/drivers/gpu/drm/meson/meson_viu.c)在 G12A 分支中通过掩码清除 HDR2 的相关位，并配置 OSD1 FIFO；不能简化为“所有主线内核始终整值写入 `0xC040`”。公开参考源码也不能替代 `6.12.41-trim #219` 实际源码、补丁和运行时寄存器证据。
+
+fbcon 旋转只影响控制台，且要求内核编译相关支持；不改变底层 framebuffer 驱动模式或其他直接绘图程序的方向，参见 [Linux fbcon 文档](https://docs.kernel.org/fb/fbcon.html)。
+
+## 当前 fnOS 实机补证
+
+[本轮只读核查](../evidence/fnos-live-check-2026-11-06.md)取得 DSI enabled、活动 DRM 800×1280/XR24、pitch 3200、背光及 rotate=3，使用者确认显示正常。已取得含内嵌 MMIO 信息的当前驱动日志、模块/工具/DTB哈希及 service 本次启动日志。实际 unit 与仓库不同，旋转服务 argv 错误；当前方向另有 `fbcon=rotate:3`，不能以服务返回成功归因横屏。未做寄存器回读、冷启动或 Armbian 测试。
+
+### 当前控制台旋转配置
+
+经使用者要求，实机旧旋转服务已停用并删除；当前由启动参数 `fbcon=rotate:3` 保持控制台方向，核验 rotate=3，显示修复服务 active。旧 unit 的执行日志和问题仅作清理前历史记录，见 [操作记录](../evidence/fnos-live-check-2026-11-06.md#后续操作移除旧旋转服务)。未进行重启复测。

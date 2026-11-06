@@ -84,3 +84,9 @@ VPU 基址 `0xFF900000`，表中 VPU 项是 **32 位寄存器索引**，物理�
 见 [验证计划](../validation.md)：优先开展 Armbian 内屏首次测试；fnOS 已确认显示正常，后续补充模块版本、写前/写后值、冷启动与暖启动、观察时长和失败情况，再做寄存器逐项对照。拟提交上游的修改需在正确的 DRM/DSI 生命周期中实现，并验证对其他输出模式的影响。
 
 参考：[U-Boot Logo 初始化思路](https://github.com/zanjie1999/rk3566-guomeiyun-armbian)、[原厂 Android 参数记录](https://github.com/Arrow36/tianyi-c10h-skyworth-SK-L1001-mod)、[ophub/fnnas](https://github.com/ophub/fnnas)、[ophub Armbian](https://github.com/ophub/amlogic-s9xxx-armbian)。
+
+## 文档审计补注（2026-11-06）
+
+保留上述研究过程和写入值。第 3 节表中将 VPU `0x1DF5` 称为 `VPP_OFIFO_SIZE` 的命名需要更正：仓库与 Linux v6.12.41 头文件将它定义为 `VPP_OSD1_BLD_H_SCOPE`，`VPP_OFIFO_SIZE` 在 `0x1D27`。不能由 `0x77F` 推导“1919 深度 FIFO”或欠载已被确诊；fnOS 实测显示正常的成果不因此撤回。见 [当前配置核对表](../display.md#寄存器配置与命名核对)。
+
+第 4 节“本次仅整理文档与注释”指先前整理提交 `f377466`；本轮审计仅修改 Markdown，未改动源码或注释。`3f3997e` 加入驱动内 MMIO 写入，只证明代码实现，尚缺设备当前加载该改动的版本证据。研究记录所述自启部署与跨冷启动可靠性也应分开评价，见 [证据索引](../../evidence/README.md)及 [源码审计](../code-audit.md)。

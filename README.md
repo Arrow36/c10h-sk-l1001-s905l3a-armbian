@@ -1,114 +1,99 @@
 # 天翼智屏 C10H / SK-L1001 Linux 适配记录
 
-创维 SK-L1001（中国电信天翼智屏 C10H，Amlogic S905L3A）的外置 Linux 启动、板级适配与显示实验资料。主要开发基线为 Armbian，同一台设备也测试了社区 ARM fnOS。
+创维 SK-L1001（中国电信天翼智屏 C10H，Amlogic S905L3A）的外置 Linux 启动、板级适配和显示研究。主要开发基线为 Armbian，同一台设备也运行了社区 ARM fnOS。
 
-**项目处于实验阶段。** 已有 U 盘启动、有线调试和内屏控制台的阶段性结果；尚未完成整机功能、长期运行及完整恢复流程验收。本仓库提供源码、配置示例和实验记录，没有可直接安装的完整系统镜像。
+**fnOS 内屏已实测显示正常；Armbian 内屏尚未测试。** 项目仍属实验性移植，未完成整机外设、长期运行及完整恢复流程验收；仓库提供源码、配置示例与研究记录，没有完整预制系统镜像或一键安装方案。
 
-状态整理日期：2026-11-06（Asia/Shanghai），并按设备使用者补充确认修正系统范围：**fnOS 内屏已实测显示正常，画面完整、颜色正常、无可见抖动；Armbian 内屏尚未测试。** 以下验证结论仅对应指定设备、系统与配置。
+## 设备与研究目标
 
-## 1. 当前进展与限制
+研究设备为 C10H / SK-L1001，原厂平台标识 `p291_iptv`。内屏为 JD9366TC、四通道 MIPI DSI、RGB888，物理扫描模式为 **800×1280**；横屏终端呈现为 **1280×800**。当前目标是在外置介质上启动 Linux，并逐项验证显示与其他外设。
 
-| 范围 | 已有记录 | 验证边界 |
+Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物型号或新增兼容设备。标称硬件与信息来源见 [硬件说明](docs/hardware.md)。
+
+## 已验证的成果
+
+- **Armbian 外置启动与有线调试**：U 盘根文件系统、systemd 多用户启动、有线 SSH、HDMI 控制台，以及一次 DNS/HTTPS 访问结果。见 [启动证据摘录](evidence/verified-boot.txt)与 [网络记录](docs/network.md)。自动联网曾间歇失败，不能视为每次启动均可联网。
+- **fnOS 外置启动与内屏点亮**：`6.12.41-trim #219` 环境中，DSI 主机/面板绑定，禁用 HDMI 后内屏独占当前 CRTC。早期画面存在分区、重复与偏色，见 [完整实验及终端输出](docs/research/fnos-lcd-full-record-2026-11-04.md)。
+- **fnOS 普通画面恢复正常**：11 月 6 日记录及设备使用者后续确认，VPU/DSI 寄存器调整后画面完整、颜色正常、无可见折叠或抖动，并实现 1280×800 横屏控制台。见 [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md)。这是指定设备与配置的实际成果；不等于量化色彩准确度或长期可靠性认证。
+- **自动修复方案已有实现与部署记录**：提供独立 MMIO 工具、systemd 单元，以及后续加入面板驱动的写入路径。见 [实现导航](#技术实现与源码导航)与 [证据评价](evidence/README.md)。已采集当前模块/文件指纹及本次启动日志；精确源码构建对应、两条修复路径的独立贡献和跨重启成功率仍待验证。
+
+## Armbian / fnOS 独立状态
+
+“已验证”指已有记录中的指定设备与配置；“未测试/待验证”不等于硬件不受支持。详细证据、归属冲突和外设状态见 [硬件表](docs/hardware.md)与 [证据索引](evidence/README.md)。
+
+| 项目 | Armbian | 社区 ARM fnOS |
 | --- | --- | --- |
-| Armbian | U 盘启动、HDMI 控制台、USB 集线器、外接键盘、有线 SSH；有过 DNS/HTTPS 成功记录 | 自动联网曾间歇失败；长期读写和断电恢复待测 |
-| 社区 ARM fnOS | U 盘启动、有线 SSH、Web 管理页、HDMI 控制台 | Web 可访问不等于存储管理、应用与 NAS 工作负载已验收 |
-| fnOS 内屏与背光 | 已实测显示正常：画面完整、颜色正常、无可见抖动 | 结论限本机 fnOS 配置；长期运行、量化色彩与其他设备兼容性另行验证 |
-| Armbian 内屏 | 尚未测试 | 不引用 fnOS 显示结果作为 Armbian 的验证结论 |
-| 横屏终端 | fnOS 已实现 1280×800 横屏控制台；历史资料另提及 FbTerm 路径 | 面板仍按 800×1280 扫描；历史方案不作为 Armbian 内屏已测试的依据 |
-| 原厂 Android | 保留在内置 eMMC；曾断电拔盘返回 Android | Linux DTB 禁用 eMMC 仅在内核接管后生效，完整恢复流程未验收 |
-| 其他外设 | GPU 已注册节点，部分配置注册过声卡 | GPU 实际加速、触摸、Wi-Fi、音频、蓝牙、摄像头均未完成可用性验证 |
+| 记录中的系统 | Debian 13 Trixie；`6.12.114-ophub` | fnOS 1.1.20 / Debian 12；`6.12.41-trim #219` |
+| U 盘启动与根文件系统 | 已验证，`/dev/sda2` ext4 | 已记录成功，`/dev/sda2` Btrfs |
+| 引导与内置 eMMC | Android update 路径 → U-Boot 一次性脚本；测试 DTB 禁用 eMMC | 有同类启动与禁用 eMMC 的记录；实际配套脚本/DTB 不在仓库 |
+| Ethernet / SSH | 已验证；DHCP/DNS 有过间歇问题 | SSH、100 Mbps 全双工本轮已确认；长期联网未验收 |
+| fnOS Web 管理页 | 不适用 | 本轮首页 HTTP 200；未据此验收 NAS 工作负载 |
+| HDMI 控制台 | 已确认 | 早期已记录；LCD 独占配置禁用 HDMI |
+| MIPI DSI / 背光 | **内屏尚未测试** | 已点亮，普通画面显示正常 |
+| 分辨率与方向 | 内屏尚未测试 | 原生 800×1280；横屏控制台 1280×800 |
+| 色彩、折叠与抖动 | 内屏尚未测试 | 实测颜色正常、无可见折叠或抖动 |
+| 开机修复 | 源码/服务可供适配，未作内屏实测 | 显示修复服务保持运行；控制台由 `fbcon=rotate:3` 旋转，旧旋转服务已移除 |
+| SD / eMMC 安装 | 未验证；内屏 overlay 禁用借用的 SD 节点 | 未验证；实验记录禁用 SD/eMMC |
+| 触摸、Wi-Fi、音频、蓝牙、摄像头、GPU 加速 | 均未完成实际功能验收 | 均未完成实际功能验收 |
 
-硬件规格和逐项状态见 [硬件支持表](docs/hardware.md)。Linux 的 `SKYWORTH E900V22C` 型号字符串来自借用的设备树，实物仍是 SK-L1001。
+早期资料将部分显示实验归于 Armbian，与设备使用者后续明确确认冲突；保留原始材料，当前不据此宣称 Armbian 内屏已测。见 [冲突说明](docs/audit.md#材料冲突与处理)。
 
-## 2. 阅读顺序
+## 简易研究时间线
+
+日期按现有实验文档或提交记录标示，不将提交时间当作首次发现时间；原厂资料提取的首次日期无法确认。
+
+| 日期 | 研究里程碑 | 依据 |
+| --- | --- | --- |
+| 2026-11-02 至 11-03（初始记录所列测试区间） | Armbian U 盘启动、HDMI 与有线调试；首次初始化发生扩容，取证脚本曾报错 | [初始提交](https://github.com/Arrow36/c10h-sk-l1001-s905l3a-armbian-fnos/commit/9b53b5d1445c2b73c881e0230615ed30fb7917a0) · [启动摘录](evidence/verified-boot.txt) |
+| 2026-11-03（归档日期） | 保存原生 DRM/ENCL、Gamma/HLINE 失败实验与暂停检查点；系统归属存在后述冲突 | [历史检查点](docs/checkpoint-2026-11-03.md) · [显示摘要](evidence/display-2026-11-03.txt) |
+| 2026-11-04（研究记录日期） | fnOS 内屏点亮；禁用 HDMI 后自动取得 CRTC，普通画面仍分区/重复 | [fnOS 完整记录](docs/research/fnos-lcd-full-record-2026-11-04.md) |
+| 2026-11-04（研究记录日期） | 浏览器 framebuffer 滑杆、通道补偿、全白图和状态采样用于分离颜色与空间故障，尚未完成系统修复 | [滑杆方法](docs/research/browser-slider-method-2026-11-04.md) · [详细纪要](docs/research/fnos-lcd-experiment-log-2026-11-04.md) |
+| 2026-11-06（修复记录日期） | fnOS 寄存器调整后显示正常；形成 MMIO 工具、横屏和自启方案，驱动随后加入直接写入实现 | [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md) · [源码演变与验证边界](docs/audit.md#提交历史与日期口径) |
+
+## 启动、构建与研究文档
 
 | 目的 | 入口 |
 | --- | --- |
-| 了解文档层次与当前状态来源 | [文档导航](docs/README.md) |
-| 评估能否用于自己的设备 | [硬件支持表](docs/hardware.md) → [启动边界与回退](docs/boot.md) |
-| 准备外置系统实验 | [镜像来源](docs/provenance.md) → [启动记录](docs/boot.md) → [有线网络](docs/network.md) |
-| 研究内屏适配 | [显示概览](docs/display.md) → [11 月 6 日寄存器调整记录](docs/research/fnos-display-resolution-record-2026-11-06.md) → [构建说明](docs/build-display.md) |
-| 追溯早期故障与尝试 | [历史实验索引](docs/README.md#历史实验与研究归档) |
-| 继续验证与补充证据 | [验证计划](docs/validation.md) |
+| 准备外置启动 | [启动路径与回退边界](docs/boot.md) → [镜像来源与历史校验值](docs/provenance.md) → [有线网络](docs/network.md) |
+| 研究内屏 | [显示概览](docs/display.md) → [11 月 6 日记录](docs/research/fnos-display-resolution-record-2026-11-06.md) → [源码构建](docs/build-display.md) |
+| 追溯原始过程 | [研究日志索引](docs/research/README.md) · [文档导航](docs/README.md) |
+| 核查真实性与下一步 | [证据索引](evidence/README.md) · [文档审计](docs/audit.md) · [源码审计](docs/code-audit.md) · [验证计划](docs/validation.md) |
 
-## 3. 测试环境
+整盘写入会覆盖目标介质数据。仓库不提供 eMMC/Bootloader 刷写教程；测试 DTB 禁用 eMMC 只在 Linux 接管后生效，不能约束此前原厂 U-Boot 的烧录/恢复逻辑。一次断电拔盘返回 Android 不等于完整恢复验收。实验前核对目标介质、启动脚本、DTB 与离线回退文件，详见 [启动边界](docs/boot.md)。
 
+## 技术实现与源码导航
 
-| 项目 | Armbian | fnOS |
-| --- | --- | --- |
-| 基础镜像 | ophub Armbian 26.11.0 S905L3A Server | ophub 社区 ARM fnOS 1.1.20 S905L3A |
-| 用户空间 | Debian 13 Trixie，ARM64 | Debian 12，ARM64 |
-| 运行内核 | `6.12.114-ophub` | `6.12.41-trim #219` |
-| 根文件系统 | U 盘 `/dev/sda2`，ext4 | U 盘 `/dev/sda2`，Btrfs |
-| 板级基线 | 内核配套 E900V22C DTB，加入 C10H 实验修改 | 内核配套 E900V22C DTB，加入 C10H 实验修改 |
-| HDMI 与 LCD | HDMI 控制台已测试；内屏尚未测试 | 初次启动使用 HDMI，LCD 实验中禁用 HDMI，由 DSI 独占 CRTC |
-| LCD 普通画面 | 尚未测试 | 已实测显示正常：画面完整、颜色正常、无可见抖动 |
-| LCD 硬件彩条 | 尚未测试 | 当次观察完整，无可见重复或错位 |
+| 路径 | 用途及边界 |
+| --- | --- |
+| [boot/](boot/) · [启动容器生成器](tools/make_boot_script.py) | 一次性 U-Boot 脚本与实验模板；UUID、文件系统和路径须与镜像一致，脚本不导入 `uEnv.txt` |
+| [eMMC DTB 工具](tools/disable_emmc.py) · [dts/](dts/) | 基线 eMMC 节点修改、面板/PWM/DSI overlay；Wi-Fi overlay 是失败/未验证实验 |
+| [面板驱动](drivers/c10h-display/panel-c10h-jd9366tc.c) · [初始化表](drivers/c10h-display/c10h-panel-init.h) | JD9366TC 上电、DCS 初始化、800×1280 模式，以及 `prepare()` 中的固定地址 MMIO 写入 |
+| [DSI 主机](drivers/c10h-display/c10h-dsi-host.c) · [驱动目录](drivers/c10h-display/) | 基于 Meson 驱动的实验适配，按实际位时钟配置 PHY，配置 HS/VS 极性 |
+| [MMIO 工具](tools/c10h-display-fix.c) · [修复服务](systemd/c10h-display-fix.service) · [旋转服务](systemd/c10h-fbcon-rotate.service) | 用户态寄存器写入与开机单元；有实现不代表当前设备已运行该版本 |
+| [显示探针](experiments/display/) · [取证脚本](scripts/) | DRM 几何图、Canvas/寄存器快照、硬件彩条与启动记录；部分工具会写硬件或切换图层 |
 
-Armbian 镜像文件名和校验值见 [镜像来源](docs/provenance.md)。fnOS 实验使用 `fnnas_amlogic_s905l3a_k6.12.41_2026.09.23.img.gz`，压缩包 SHA-256 为 `94652b7556fa8c1bd78298003fd6cf0db31d03fa8ecd681e997b74c77b367a87`，下载后已核对。写盘前替换了测试 DTB 与一次性启动脚本。验证范围限于外置试启动，仓库没有完整预制系统镜像。 [fnOS 发布页](https://github.com/ophub/fnnas/releases/tag/fnnas_amlogic_693)
+寄存器值与命名核对集中于 [显示配置表](docs/display.md#寄存器配置与命名核对)。特别是 `0x1DF5` 在仓库头文件中定义为 `VPP_OSD1_BLD_H_SCOPE`，不能直接解释为“1919 深度输出 FIFO”。
 
-## 4. 外置启动的基本顺序
+## 已知问题与待验证事项
 
-这是准备顺序，具体文件与适用条件以 [启动文档](docs/boot.md) 为准。
+- Armbian 内屏首次测试；触摸、无线、音频等外设实际功能；fnOS 存储与 NAS 工作负载。
+- fnOS 当前 DTB/模块/工具哈希与服务本次日志已取得；精确源码构建映射、冷启动和长期负载仍待验证。
+- 各寄存器的单独贡献、色彩矩阵和欠载机制；当前目视正常不支持“100% 色彩准确”或“永久稳定”等承诺。
+- MMIO 工具映射失败后仍可能返回成功；驱动映射失败与成功日志不一致；服务排序不等于显示硬件就绪。详见 [源码审计](docs/code-audit.md)。
+- 原厂完整固件恢复、升级后兼容性与其他批次设备均未验收。
 
-1. 核对镜像来源和 SHA-256，确认目标 U 盘可清空。整盘写入会覆盖原分区及数据。
-2. 以目标内核配套 DTB 为基线生成禁用 eMMC 的测试副本；内屏实验还需面板、背光、DSI 与显示路由配置。
-3. 核对启动脚本中的根 UUID、文件系统、内核、initramfs 和 DTB 路径，再生成配套的 `aml_autoscript`、`s905_autoscript`。当前脚本不导入 `uEnv.txt`。
-4. 先确认 HDMI 与有线 SSH，再尝试 LCD 独占。保存可用的 HDMI DTB 和启动脚本，以便离线恢复 U 盘启动分区。
-5. 本机曾经由 Android 的 `adb reboot update` 进入原厂 U-Boot 更新路径并启动 U 盘。该路径包含烧录/恢复逻辑，不能据此推定其他设备也可直接使用。
+## 上游、参考与致谢
 
-仓库脚本不含 `saveenv` 或 eMMC 写入命令；这不能约束 Linux 启动前的原厂 U-Boot 行为。本机曾拔盘回到 Android，但已有分区备份不等于完整固件恢复能力。
+- [ophub/amlogic-s9xxx-armbian](https://github.com/ophub/amlogic-s9xxx-armbian) 与 [ophub/fnnas](https://github.com/ophub/fnnas)：社区系统基础。
+- [Calmact/e900v22c](https://github.com/Calmact/e900v22c)：借用板级配置的参考。
+- [原厂 Android 研究记录](https://github.com/Arrow36/tianyi-c10h-skyworth-SK-L1001-mod)：原厂硬件与运行参数资料来源。
+- [unifreq/linux-6.12.y](https://github.com/unifreq/linux-6.12.y/tree/main/drivers/gpu/drm/meson)：显示驱动参考，具体派生关系仍需结合提交与构建材料。
+- [zanjie1999/rk3566-guomeiyun-armbian](https://github.com/zanjie1999/rk3566-guomeiyun-armbian)：提供 U-Boot Logo 初始化显示通路的参考思路，不代表 C10H 兼容 RK3566 配置。
 
-## 5. 内屏适配摘要
+维护者为 Arrow36。本仓库未指定统一许可证；上游及派生文件按各自许可、SPDX 和版权声明处理。
 
-面板为 JD9366TC，四通道 MIPI DSI、RGB888、原生 800×1280。以下调整已在 fnOS 上实测获得正常显示；Armbian 内屏尚未测试：
+## 本轮 fnOS 实机补证
 
-### 核心硬件寄存器对照表（原厂 vs 主线 vs 最终修复）
+经 SSH 只读核查，已直接取得 100 Mbps 全双工链路、USB Btrfs 根挂载、DSI 活动 800×1280、rotate=3、模块/工具/DTB哈希、实际 unit 和本次启动服务日志；管理首页 HTTP 200，使用者同时确认实屏正常。见 [实机证据及配置差异](evidence/fnos-live-check-2026-11-06.md)。
 
-| 物理地址 / 模块 | 寄存器名称 | 原厂 Android / U-Boot | 主线 Linux 默认状态 | 最终修复生效值 | 修复作用与解决痛点 |
-|---|---|---|---|---|---|
-| `0xFF900000 + 0x38A0*4` | `OSD1_HDR2_CTRL` | `0x0001C040` | `0x0000C040` | **`0x0001C040`** | 启用 RGB$\to$YUV709l 矩阵，抵消后端 Post-Matrix，**彻底解决偏色（黑变绿、白变紫）** |
-| `0xFF900000 + 0x1DF1*4` | `VPP_OSD1_IN_SIZE` | `0x05000320`（Logo 后） | `0x03200500`（未更新） | **`0x05000320`** | 强制 OSD1 宽 800、高 1280，**彻底解决左侧半屏紫块与右侧画面折叠** |
-| `0xFF900000 + 0x1A2B*4` | `VIU_OSD1_FIFO_CTRL_STAT` | `0x82820501` | `0x028207E1` | **`0x82820501`** | 猝发设为 96、行缓冲设为 8，**彻底消除每秒高频垂直抽动** |
-| `0xFF900000 + 0x1DF5*4` | `VPP_OFIFO_SIZE` | `0x0000077F` | `0x0000031F` | **`0x0000077F`** | 恢复满血 1919 深度 FIFO，防止视频管道突发读欠载 |
-| `0xFF900000 + 0x1D22*4` | `VPP_HOLD_LINES` | `0x08080808` | `0x00000404` | **`0x08080808`** | 维持 8 行后级同步容限，确保消隐期稳定 |
-| `0xFFD07000 + 0x3C8` | `MIPI_DSI_TOP_CNTL` | `0x00512430` | `0x00512400` | **`0x00512430`** | 开启 HS/VS 翻转（`BIT(5)\|BIT(4)`），匹配 JD9366TC 极性 |
-| `0xFFD07000 + 0x014` | `DSI_DPI_CNTL` | `0x00000000` | `0x00000000` | **`0x00000000`** | 确保 DPI 采样极性与主控制器一致 |
-| `0xFFD07000 + 0x050` | `VID_HLINE_TIME` | `0x000002FF` | `0x000002FC` | **`0x000002FF`** | 锁定 767 周期，精确匹配 75.857MHz 像素时钟 |
-
-| 现象 | 相关调整 | 结论边界 |
-| --- | --- | --- |
-| 固定紫色区、画面折叠/重复 | `VPU[0x1DF1] = 0x05000320`，对应 800×1280 输入尺寸 | 支持排查输入尺寸与启动遗留状态，冷启动与重设模式仍需复测 |
-| 黑偏绿、白偏紫 | `VPU[0x38A0] = 0x0001C040` | 记录反馈颜色恢复正常；未进行色度计或色差测量 |
-| 高频垂直抽动 | 联合调整 FIFO、保持行数与 DSI 配置 | 当次反馈抽动消失；各项贡献及欠载机制尚无完整单变量证据 |
-| 横屏控制台 | fnOS 使用 fbcon 旋转 | Armbian 内屏未测；历史 FbTerm 配置仅作参考 |
-
-当前源码同时包含面板 `prepare()` 中的 MMIO 写入和独立 `/dev/mem` 工具。两者的时序、适用性及服务状态见 [寄存器调整记录](docs/research/fnos-display-resolution-record-2026-11-06.md)。不要把服务执行成功直接当作屏幕验收通过。
-
-## 6. 仓库结构
-
-```text
-boot/                    U-Boot 脚本及实验模板
-docs/                    专题说明、当前状态与验证计划
-docs/research/           按日期保存的研究过程
-drivers/c10h-display/    实验面板、DSI 主机及 ENCL 诊断模块
-dts/                     面板与 PCIe/Wi-Fi 实验 overlay
-evidence/                脱敏启动与显示日志摘录
-experiments/display/     DRM 几何图、保留 framebuffer 等探针
-scripts/                 启动取证与彩条脚本
-systemd/                 配套服务示例
-tools/                   DTB、启动容器生成工具及 MMIO 程序
-```
-
-`dts/c10h-wifi-pcie-test.dtso` 归档的是未验证成功的实验方向。`boot/*.cmd.example` 和 systemd 服务中的路径、参数均需对照实际环境。内核模块需要匹配目标内核的 headers、配置和符号版本；仓库没有 DKMS 或一键安装方案。
-
-## 7. 上游、参考与许可
-
-
-- [ophub/amlogic-s9xxx-armbian](https://github.com/ophub/amlogic-s9xxx-armbian)
-- [ophub/fnnas](https://github.com/ophub/fnnas)
-- [Calmact/e900v22c](https://github.com/Calmact/e900v22c)
-- [C10H 原厂 Android 修改记录](https://github.com/Arrow36/tianyi-c10h-skyworth-SK-L1001-mod)
-- [zanjie1999/rk3566-guomeiyun-armbian](https://github.com/zanjie1999/rk3566-guomeiyun-armbian)：提供了通过 U-Boot 开机 Logo 初始化显示通路的参考思路。
-
-维护者为 Arrow36。上游镜像、内核、设备树和固件分别遵循其许可。本仓库尚未指定统一许可证，实验驱动及上游派生文件保留原有 SPDX 和版权声明。公开资料以技术参数、源码和脱敏实验记录为主。
+这些新证据部分补齐上文的静态审计缺口；精确源码构建对应、寄存器回读、冷启动和长时测试仍未完成。经设备使用者授权，随后已移除实机旧旋转服务；保留 `fbcon=rotate:3`，当前 rotate=3，显示修复服务保持 active。Armbian 内屏仍未测试。
